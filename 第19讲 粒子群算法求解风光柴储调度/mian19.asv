@@ -1,0 +1,160 @@
+%大部分智能算法都有自己的框架，所以只需要改变main函数    %有一篇14年的文献，但是比这个案例难许多
+clc;clear; 
+format long;
+
+%% 初始化条件
+% 微型燃气轮机最大功率
+MTMaxPower = 5;
+% 微型燃气轮机最小功率
+MTMinPower = 1;
+% 电网输入微网最大功率
+GridMaxImportPower = 250;
+%电网输入微网最小功率
+GridMinImportPower = 10;
+% 储能最大放电功率
+StorageMaxDischargePower = 150;
+% 储能最大充电功率
+StorageMaxChargePower = -100;
+
+Max_Dt = 100;    %最大迭代次数100
+D = 72;   %搜索空间维数（未知数个数）  24 * 3
+N = 100;  %粒子数个数100
+w_max = 0.9;
+w_min = 0.4;
+v_max = 2;
+s = 1;
+
+%初始化种群个体（位置和速度）  *****************
+for i = 1:N
+    for j = 1:72
+        %v(i,j) = randn;
+        v(i,j) = 0.0;
+        if j<25
+            x(i,j) = MTMinPower+rand()*(MTMaxPower - MTMinPower);
+        elseif j>24&&j<49
+            x(i,j) = GridMinImportPower+rand()*(GridMaxImportPower - GridMinImportPower);
+        elseif
+            x(i,j) = StorageMaxChargePower+rand()*(StorageMaxDischargePower-StorageMaxChargePower);
+        end
+    end
+end
+
+% 计算各个粒子的适应度，并初始化Pi和Pg*********
+for i = 1:N
+    p(i) = fitness(x(i,:),s);
+    y(i,:) = x(i,:);   %每个粒子的个体寻优值
+end
+Pbest = fitness(x(1,:),s)<fitness(pg,s);
+pg = x(1,:);  %Pg为全局最优
+for i = 2:N
+    if fitness(x(i,:),s) < fitness(pg,s)
+        Pbest = fitness(x(i,:),s);
+        pg = x(i,:);  % 全局最优更新
+    end
+end
+
+%进入主循环********
+for t = 1:Max_Dt
+    for i = 1:N
+        w = w_max - (w_max - w_min)*t/Max_Dt;   %惯性权重更新
+        c1 = (0.5-2.5)*t/Max_Dt+2.5;  %认知
+        c2 = (2.5-0.5)*t/Max_Dt+0.5;  %社会认知
+        % w = 0.7；
+        % c1 = 2.05； %认知
+        % c2 = 2.05； %社会认知
+        v(i,:) = w*v(i,:)+c1*rand()*(y(i,:) - x(i,:))+c2*rand()*(pg - x(i,:));
+        for m = 1:72
+            if(v(i.m) > v_max)
+                v(i,m) = v_max;
+            elseif(v(i,m) < -v_max)
+                v(i,m)=-v_max;
+            end
+        end
+
+        x(i,:) = x(i,:) + v(i,:);
+        % 对粒子边界处理*********
+        for n = 1:72
+            if n < 25
+                if x(i,n) < MTMinPower
+                    x(i,n) = MTMinPower;
+                    v(i,n) = -v(i,n);
+                elseif x(i,n)>MTMaxPower
+                    x(i,n)=MTMaxPower;
+                    v(i,n) = -v(i,n);
+                else
+                    delt(i,n) = 0;
+                end
+            elseif n>24 && n<49
+                 if x(i,n) < GridMinImportPower
+                    x(i,n) = GridMinImportPower;
+                    v(i,n) = -v(i,n);
+                elseif x(i,n)>GridMaxImportPower
+                    x(i,n)=GridMaxImportPower;
+                    v(i,n) = -v(i,n);
+                else
+                    delt(i,n) = 0;
+                 end
+            else
+                if x(i,n) < StorageMaxChargePower
+                    x(i,n) = StorageMaxChargePower;
+                    v(i,n) = -v(i,n);
+                elseif x(i,n)>StorageMaxDischargePower
+                    x(i,n)=StorageMaxDischargePower;
+                    v(i,n) = -v(i,n);
+                else
+                    delt(i,n) = 0;
+                end
+            end
+        end
+        %对粒子进行评价，寻找最优质*******
+        if fitness(x(i,:),t) < p(i)
+            p(i) = fitness(x(i,:),t);
+            y(i,:) = x(i,:);
+        end
+        if p(i) < Pbest
+            Pbest = p(i);
+            pg = y(i,:);
+            s = t;
+        end
+    end
+    %Pbest(t) = fitness(pg,s);
+end
+
+for m = 1:24
+    pg1(m) = pg(m);
+end
+for m = 25:48
+    pg2(m-24) = pg(m);
+end
+for m = 49:72
+    pg3(m-48) = pg(m);
+end
+figure
+subplot(311)
+plot(pg1,'-*')
+xlim([1 24])
+grid
+title('MT运行计划')
+subplot(312)
+plot(pg2,'-*')
+xlim([1 24])
+grid
+title('MT运行计划')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
