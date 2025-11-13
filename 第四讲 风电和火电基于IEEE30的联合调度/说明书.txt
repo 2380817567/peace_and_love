@@ -1,0 +1,9 @@
+1、main4是主代码，运行它即可
+2、ieee30是基本参数
+3、getYbusMatrix、getMbgMatrix、getMbdMatrix、makeTmatrix都是ieee学要用到的子程序，不用管他们
+4、getConsAgl是潮流计算中相位角的约束，不用修改     ！！！！相角约束他没漏，所以我就没有添加相角约束
+5、getConsEQ是功率平衡的约束，可以修改
+6、getConsGen1是火电机组的约束，可以修改
+7、getConsPF是线路容量的约束，可以不用修改
+8、getConsRE是风电机组的功率约束
+9、getObjqf是弃风成本的计算
